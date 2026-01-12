@@ -26,8 +26,8 @@ jobs:
       - name: Read current version
         id: read-version
         run: |
-          VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}')
-          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
+          chmod +x .github/scripts/get-version.sh
+          eval $(.github/scripts/get-version.sh both)
           echo "current_version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "current_version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION_NAME ($VERSION_CODE)"
@@ -55,8 +55,10 @@ jobs:
       
       - name: Update build.gradle
         run: |
-          sed -i "s/versionCode ${{ steps.read-version.outputs.current_version_code }}/versionCode ${{ steps.increment-version.outputs.new_version_code }}/" app/build.gradle
-          sed -i "s/versionName \"${{ steps.read-version.outputs.current_version_name }}\"/versionName \"${{ steps.increment-version.outputs.new_version_name }}\"/" app/build.gradle
+          chmod +x .github/scripts/update-version.sh
+          .github/scripts/update-version.sh \
+            ${{ steps.increment-version.outputs.new_version_code }} \
+            ${{ steps.increment-version.outputs.new_version_name }}
       
       - name: Commit version bump
         run: |

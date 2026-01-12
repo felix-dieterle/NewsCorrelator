@@ -33,12 +33,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-results
+          name: lint-results-pr-${{ github.event.pull_request.number }}
           path: app/build/reports/lint-results-debug.html
       
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-pr-${{ github.event.pull_request.number }}
           path: app/build/reports/tests/testDebugUnitTest/
