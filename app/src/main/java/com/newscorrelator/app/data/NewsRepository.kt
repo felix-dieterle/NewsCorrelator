@@ -93,7 +93,7 @@ class NewsRepository(
 
     private fun generateTopicHash(title: String): String {
         // Simple topic extraction - use main keywords
-        val words = title.toLowerCase(Locale.getDefault())
+        val words = title.lowercase(Locale.getDefault())
             .split(" ")
             .filter { it.length > 4 }
             .take(3)
