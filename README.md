@@ -2,6 +2,16 @@
 
 An intelligent Android news aggregation app that displays news from multiple sources, learns from user preferences, and uses AI to analyze article integrity and detect potential bias.
 
+## CI/CD Automation
+
+This repository includes automated workflows for:
+
+- **Automated Testing**: All pull requests are automatically tested and linted
+- **Version Management**: Version numbers are automatically incremented on merge to main
+- **Release Builds**: APK files are automatically built and released with each version
+
+For detailed information about the CI/CD workflows, see [.github/workflows/README.md](.github/workflows/README.md).
+
 ## Features
 
 ### Core Functionality
@@ -149,3 +159,4 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 - NewsAPI.org for free news API
 - OpenRouter.AI for free AI model access
 - Material Design for UI components
+
