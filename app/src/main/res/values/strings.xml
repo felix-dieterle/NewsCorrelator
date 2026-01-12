@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NewsCorrelator</string>
+    <string name="settings">Settings</string>
+    <string name="news_api_key">News API Key</string>
+    <string name="openrouter_api_key">OpenRouter API Key</string>
+    <string name="categories">Categories (comma-separated)</string>
+    <string name="keywords">Keywords (comma-separated)</string>
+    <string name="sources_per_topic">Sources per topic</string>
+    <string name="enable_ai_analysis">Enable AI Analysis</string>
+    <string name="save_settings">Save Settings</string>
+    <string name="integrity_score">Integrity Score: %.1f/10</string>
+    <string name="not_analyzed">Not analyzed</string>
+    <string name="view_sources">View Sources</string>
+</resources>
