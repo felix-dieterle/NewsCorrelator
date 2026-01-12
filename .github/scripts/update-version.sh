@@ -33,11 +33,12 @@ fi
 # Create backup
 cp "$BUILD_GRADLE_PATH" "${BUILD_GRADLE_PATH}.bak"
 
-# Update versionCode
-sed -i -E "s/(^\s*versionCode\s+)[0-9]+/\1$NEW_VERSION_CODE/" "$BUILD_GRADLE_PATH"
+# Use portable sed approach (works on both Linux and macOS)
+sed -E "s/(^\s*versionCode\s+)[0-9]+/\1$NEW_VERSION_CODE/" "$BUILD_GRADLE_PATH" > "${BUILD_GRADLE_PATH}.tmp"
+mv "${BUILD_GRADLE_PATH}.tmp" "$BUILD_GRADLE_PATH"
 
-# Update versionName
-sed -i -E "s/(^\s*versionName\s+)\"[^\"]+\"/\1\"$NEW_VERSION_NAME\"/" "$BUILD_GRADLE_PATH"
+sed -E "s/(^\s*versionName\s+)\"[^\"]+\"/\1\"$NEW_VERSION_NAME\"/" "$BUILD_GRADLE_PATH" > "${BUILD_GRADLE_PATH}.tmp"
+mv "${BUILD_GRADLE_PATH}.tmp" "$BUILD_GRADLE_PATH"
 
 echo "Updated version to: $NEW_VERSION_NAME (code: $NEW_VERSION_CODE)"
 

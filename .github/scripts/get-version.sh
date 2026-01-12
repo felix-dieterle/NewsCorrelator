@@ -15,16 +15,30 @@ TYPE="${1:-both}"
 
 # Extract versionCode - looks for pattern "versionCode <number>"
 get_version_code() {
-    grep -E "^\s*versionCode\s+" "$BUILD_GRADLE_PATH" | \
+    local code
+    code=$(grep -E "^\s*versionCode\s+" "$BUILD_GRADLE_PATH" | \
         sed -E 's/.*versionCode\s+([0-9]+).*/\1/' | \
-        head -n1
+        head -n1)
+    
+    if [ -z "$code" ]; then
+        echo "Error: Could not extract versionCode from $BUILD_GRADLE_PATH" >&2
+        exit 1
+    fi
+    echo "$code"
 }
 
 # Extract versionName - looks for pattern "versionName "X.Y.Z""
 get_version_name() {
-    grep -E "^\s*versionName\s+" "$BUILD_GRADLE_PATH" | \
+    local name
+    name=$(grep -E "^\s*versionName\s+" "$BUILD_GRADLE_PATH" | \
         sed -E 's/.*versionName\s+"([^"]+)".*/\1/' | \
-        head -n1
+        head -n1)
+    
+    if [ -z "$name" ]; then
+        echo "Error: Could not extract versionName from $BUILD_GRADLE_PATH" >&2
+        exit 1
+    fi
+    echo "$name"
 }
 
 case "$TYPE" in

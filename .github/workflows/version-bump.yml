@@ -42,7 +42,7 @@ jobs:
           NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
           
           # Increment patch version (e.g., 1.0.0 -> 1.0.1)
-          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION_NAME"
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION_NAME"
           MAJOR=${VERSION_PARTS[0]}
           MINOR=${VERSION_PARTS[1]:-0}
           PATCH=${VERSION_PARTS[2]:-0}
