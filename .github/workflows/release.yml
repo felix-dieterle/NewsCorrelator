@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Extract version from build.gradle
+      id: get_version
+      run: |
+        VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"' | tr -d ' ')
+        VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}' | tr -d ' ')
+        
+        # Validate extracted values
+        if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+          echo "Error: Failed to extract version from app/build.gradle"
+          echo "VERSION_NAME=$VERSION_NAME, VERSION_CODE=$VERSION_CODE"
+          exit 1
+        fi
+        
+        echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_ENV
+        echo "VERSION_CODE=${VERSION_CODE}" >> $GITHUB_ENV
+        echo "TAG=v${VERSION_NAME}-${VERSION_CODE}" >> $GITHUB_ENV
+        
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        if git rev-parse "${{ env.TAG }}" >/dev/null 2>&1; then
+          echo "Tag ${{ env.TAG }} already exists"
+          echo "TAG_EXISTS=true" >> $GITHUB_ENV
+        else
+          echo "Tag ${{ env.TAG }} does not exist"
+          echo "TAG_EXISTS=false" >> $GITHUB_ENV
+        fi
+        
+    - name: Build release APK
+      if: env.TAG_EXISTS == 'false'
+      run: ./gradlew assembleRelease
+      
+    - name: Sign APK (if signing config exists)
+      if: env.TAG_EXISTS == 'false'
+      continue-on-error: true
+      run: |
+        echo "Note: APK signing would happen here if signing configuration is set up"
+        echo "For now, the unsigned release APK will be used"
+        
+    - name: Rename APK
+      if: env.TAG_EXISTS == 'false'
+      run: |
+        mkdir -p release-artifacts
+        
+        # Try to find the APK file
+        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
+          cp app/build/outputs/apk/release/app-release.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        else
+          echo "Error: Could not find release APK file"
+          ls -la app/build/outputs/apk/release/ || echo "Release directory not found"
+          exit 1
+        fi
+        
+    - name: Generate changelog
+      if: env.TAG_EXISTS == 'false'
+      id: changelog
+      run: |
+        # Get commits since last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        # Create changelog file
+        echo "# What's Changed" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        
+        if [ -z "$LAST_TAG" ]; then
+          # First release - list all commits
+          git log --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+        else
+          # List commits since last tag
+          git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${{ env.TAG }}" >> CHANGELOG.md
+        fi
+        
+    - name: Create Release
+      if: env.TAG_EXISTS == 'false'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ env.TAG }}
+        name: NewsCorrelator ${{ env.VERSION_NAME }} (Build ${{ env.VERSION_CODE }})
+        body_path: CHANGELOG.md
+        files: |
+          release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Skip release (tag exists)
+      if: env.TAG_EXISTS == 'true'
+      run: |
+        echo "Skipping release creation - tag ${{ env.TAG }} already exists"
+        echo "Increment versionCode or versionName in app/build.gradle to create a new release"
