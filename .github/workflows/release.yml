@@ -33,8 +33,16 @@ jobs:
     - name: Extract version from build.gradle
       id: get_version
       run: |
-        VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
-        VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}')
+        VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"' | tr -d ' ')
+        VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}' | tr -d ' ')
+        
+        # Validate extracted values
+        if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
+          echo "Error: Failed to extract version from app/build.gradle"
+          echo "VERSION_NAME=$VERSION_NAME, VERSION_CODE=$VERSION_CODE"
+          exit 1
+        fi
+        
         echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_ENV
         echo "VERSION_CODE=${VERSION_CODE}" >> $GITHUB_ENV
         echo "TAG=v${VERSION_NAME}-${VERSION_CODE}" >> $GITHUB_ENV
@@ -65,8 +73,17 @@ jobs:
       if: env.TAG_EXISTS == 'false'
       run: |
         mkdir -p release-artifacts
-        cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk || \
-        cp app/build/outputs/apk/release/app-release.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        
+        # Try to find the APK file
+        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
+          cp app/build/outputs/apk/release/app-release.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+        else
+          echo "Error: Could not find release APK file"
+          ls -la app/build/outputs/apk/release/ || echo "Release directory not found"
+          exit 1
+        fi
         
     - name: Generate changelog
       if: env.TAG_EXISTS == 'false'
@@ -74,18 +91,21 @@ jobs:
       run: |
         # Get commits since last tag
         LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-        if [ -z "$LAST_TAG" ]; then
-          COMMITS=$(git log --pretty=format:"- %s" --no-merges)
-        else
-          COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
-        fi
         
         # Create changelog file
         echo "# What's Changed" > CHANGELOG.md
         echo "" >> CHANGELOG.md
-        echo "$COMMITS" >> CHANGELOG.md
-        echo "" >> CHANGELOG.md
-        echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${{ env.TAG }}" >> CHANGELOG.md
+        
+        if [ -z "$LAST_TAG" ]; then
+          # First release - list all commits
+          git log --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+        else
+          # List commits since last tag
+          git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${{ env.TAG }}" >> CHANGELOG.md
+        fi
         
     - name: Create Release
       if: env.TAG_EXISTS == 'false'
