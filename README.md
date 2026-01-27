@@ -142,6 +142,43 @@ app/
 ## License
 This project is open source and available under the MIT License.
 
+## CI/CD & Releases
+
+### Continuous Integration
+This project uses GitHub Actions for continuous integration. On every push and pull request:
+- **Linting**: Runs `./gradlew lintDebug` to check code quality
+- **Unit Tests**: Runs `./gradlew test` to execute unit tests
+- **Build Verification**: Runs `./gradlew assembleDebug` to ensure the app builds successfully
+
+### Automated Releases
+On every merge to the `main` branch:
+- A release APK is automatically built using `./gradlew assembleRelease`
+- A new GitHub release is created with:
+  - Version tag based on `versionName` and `versionCode` from `app/build.gradle`
+  - Downloadable APK artifact
+  - Automatically generated changelog
+- Releases are only created when the version is incremented to avoid duplicates
+
+To create a new release:
+1. Update `versionCode` and/or `versionName` in `app/build.gradle`
+2. Merge your changes to the `main` branch
+3. The release will be automatically created and published
+
+### Building Locally
+```bash
+# Build debug APK
+./gradlew assembleDebug
+
+# Build release APK
+./gradlew assembleRelease
+
+# Run tests
+./gradlew test
+
+# Run lint checks
+./gradlew lint
+```
+
 ## Contributing
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
