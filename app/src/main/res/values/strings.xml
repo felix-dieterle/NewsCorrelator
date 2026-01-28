@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NewsCorrelator</string>
+    <string name="app_name">4You NewsCorrelator</string>
     <string name="settings">Settings</string>
     <string name="news_api_key">News API Key</string>
     <string name="openrouter_api_key">OpenRouter API Key</string>
