@@ -6,6 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        // Note: AGP 8.2.0+ is recommended for Android SDK 35, but 8.1.1 works in most cases
         classpath 'com.android.tools.build:gradle:8.1.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
