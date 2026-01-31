@@ -14,6 +14,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.newscorrelator.app.R
+import com.newscorrelator.app.utils.LogManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: NewsViewModel
@@ -24,68 +25,147 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: MaterialToolbar
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        LogManager.i("MainActivity.onCreate() started")
+        
+        try {
+            super.onCreate(savedInstanceState)
+            LogManager.i("MainActivity.super.onCreate() completed")
+            
+            LogManager.i("Setting content view")
+            setContentView(R.layout.activity_main)
+            LogManager.i("Content view set successfully")
 
-        toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
+            LogManager.i("Finding views")
+            toolbar = findViewById(R.id.toolbar)
+            LogManager.i("Toolbar found")
+            setSupportActionBar(toolbar)
+            LogManager.i("Toolbar set as action bar")
 
-        recyclerView = findViewById(R.id.recyclerView)
-        swipeRefresh = findViewById(R.id.swipeRefresh)
-        progressBar = findViewById(R.id.progressBar)
+            recyclerView = findViewById(R.id.recyclerView)
+            LogManager.i("RecyclerView found")
+            swipeRefresh = findViewById(R.id.swipeRefresh)
+            LogManager.i("SwipeRefreshLayout found")
+            progressBar = findViewById(R.id.progressBar)
+            LogManager.i("ProgressBar found")
 
-        viewModel = ViewModelProvider(this)[NewsViewModel::class.java]
+            LogManager.i("Getting ViewModel")
+            viewModel = ViewModelProvider(this)[NewsViewModel::class.java]
+            LogManager.i("ViewModel created successfully")
 
-        setupRecyclerView()
-        observeViewModel()
+            LogManager.i("Setting up RecyclerView")
+            setupRecyclerView()
+            LogManager.i("RecyclerView setup completed")
+            
+            LogManager.i("Observing ViewModel")
+            observeViewModel()
+            LogManager.i("ViewModel observation setup completed")
 
-        swipeRefresh.setOnRefreshListener {
-            viewModel.refreshNews()
-        }
-
-        // Load initial data if preferences are set
-        viewModel.preferences.observe(this) { prefs ->
-            if (prefs != null && prefs.newsApiKey.isNotEmpty()) {
+            swipeRefresh.setOnRefreshListener {
+                LogManager.i("Swipe refresh triggered")
                 viewModel.refreshNews()
             }
+
+            // Load initial data if preferences are set
+            viewModel.preferences.observe(this) { prefs ->
+                LogManager.i("Preferences changed: ${prefs != null}")
+                if (prefs != null) {
+                    LogManager.i("API Key configured: ${prefs.newsApiKey.isNotEmpty()}")
+                    if (prefs.newsApiKey.isNotEmpty()) {
+                        LogManager.i("Triggering initial news refresh")
+                        viewModel.refreshNews()
+                    } else {
+                        LogManager.w("API key is empty - user needs to configure settings")
+                    }
+                } else {
+                    LogManager.w("No preferences found - user needs to configure settings")
+                }
+            }
+            
+            LogManager.i("MainActivity.onCreate() completed successfully")
+        } catch (e: Exception) {
+            LogManager.e("Error in MainActivity.onCreate()", e)
+            throw e
         }
     }
 
     private fun setupRecyclerView() {
-        adapter = NewsAdapter(
-            onArticleClick = { article ->
-                val intent = Intent(this, ArticleDetailActivity::class.java)
-                intent.putExtra("article_id", article.id)
-                startActivity(intent)
-            },
-            onSaveClick = { article ->
-                viewModel.toggleSaveArticle(article)
-            },
-            onAnalyzeClick = { article ->
-                viewModel.analyzeArticle(article)
-                Toast.makeText(this, "Analyzing article...", Toast.LENGTH_SHORT).show()
-            }
-        )
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = adapter
+        try {
+            LogManager.i("Creating NewsAdapter")
+            adapter = NewsAdapter(
+                onArticleClick = { article ->
+                    LogManager.i("Article clicked: ${article.title}")
+                    val intent = Intent(this, ArticleDetailActivity::class.java)
+                    intent.putExtra("article_id", article.id)
+                    startActivity(intent)
+                },
+                onSaveClick = { article ->
+                    LogManager.i("Save clicked for article: ${article.title}")
+                    viewModel.toggleSaveArticle(article)
+                },
+                onAnalyzeClick = { article ->
+                    LogManager.i("Analyze clicked for article: ${article.title}")
+                    viewModel.analyzeArticle(article)
+                    Toast.makeText(this, "Analyzing article...", Toast.LENGTH_SHORT).show()
+                }
+            )
+            recyclerView.layoutManager = LinearLayoutManager(this)
+            recyclerView.adapter = adapter
+            LogManager.i("RecyclerView adapter set")
+        } catch (e: Exception) {
+            LogManager.e("Error in setupRecyclerView()", e)
+            throw e
+        }
     }
 
     private fun observeViewModel() {
-        viewModel.articles.observe(this) { articles ->
-            adapter.submitList(articles)
-        }
-
-        viewModel.isLoading.observe(this) { isLoading ->
-            swipeRefresh.isRefreshing = isLoading
-            progressBar.visibility = if (isLoading && adapter.itemCount == 0) View.VISIBLE else View.GONE
-        }
-
-        viewModel.error.observe(this) { error ->
-            error?.let {
-                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
-                viewModel.clearError()
+        try {
+            viewModel.articles.observe(this) { articles ->
+                LogManager.i("Articles updated: ${articles.size} articles")
+                adapter.submitList(articles)
             }
+
+            viewModel.isLoading.observe(this) { isLoading ->
+                LogManager.i("Loading state changed: $isLoading")
+                swipeRefresh.isRefreshing = isLoading
+                progressBar.visibility = if (isLoading && adapter.itemCount == 0) View.VISIBLE else View.GONE
+            }
+
+            viewModel.error.observe(this) { error ->
+                error?.let {
+                    LogManager.e("ViewModel error: $it")
+                    Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+                    viewModel.clearError()
+                }
+            }
+        } catch (e: Exception) {
+            LogManager.e("Error in observeViewModel()", e)
+            throw e
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        LogManager.i("MainActivity.onStart()")
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        LogManager.i("MainActivity.onResume()")
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        LogManager.i("MainActivity.onPause()")
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        LogManager.i("MainActivity.onStop()")
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        LogManager.i("MainActivity.onDestroy()")
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -96,10 +176,12 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_settings -> {
+                LogManager.i("Settings menu item clicked")
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
             }
             R.id.action_refresh -> {
+                LogManager.i("Refresh menu item clicked")
                 viewModel.refreshNews()
                 true
             }

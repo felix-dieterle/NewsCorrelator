@@ -6,16 +6,26 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.newscorrelator.app.data.*
+import com.newscorrelator.app.utils.LogManager
 import kotlinx.coroutines.launch
 
 class NewsViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = NewsDatabase.getDatabase(application)
+    init {
+        LogManager.i("NewsViewModel initializing")
+    }
+    
+    private val database = NewsDatabase.getDatabase(application).also {
+        LogManager.i("NewsDatabase obtained")
+    }
+    
     private val repository = NewsRepository(
         database.articleDao(),
         database.sourceDao(),
         database.userPreferenceDao(),
         database.articleGroupDao()
-    )
+    ).also {
+        LogManager.i("NewsRepository created")
+    }
 
     val articles: LiveData<List<Article>> = database.articleDao().getAllArticles()
     val savedArticles: LiveData<List<Article>> = database.articleDao().getSavedArticles()
@@ -28,57 +38,84 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    init {
+        LogManager.i("NewsViewModel initialized successfully")
+    }
+
     fun refreshNews() {
+        LogManager.i("refreshNews() called")
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _error.value = null
                 
+                LogManager.i("Getting preferences")
                 val prefs = repository.getPreferences()
                 if (prefs == null || prefs.newsApiKey.isEmpty()) {
-                    _error.value = "Please configure API keys in Settings"
+                    val errorMsg = "Please configure API keys in Settings"
+                    LogManager.w(errorMsg)
+                    _error.value = errorMsg
                     return@launch
                 }
 
+                LogManager.i("Preferences found - API key configured")
                 val categories = prefs.categories.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                LogManager.i("Categories: ${categories.joinToString(", ")}")
+                LogManager.i("Sources per topic: ${prefs.sourcesPerTopic}")
+                
+                LogManager.i("Fetching news from API")
                 repository.fetchAndStoreNews(
                     apiKey = prefs.newsApiKey,
                     categories = categories,
                     sourcesPerTopic = prefs.sourcesPerTopic
                 )
+                LogManager.i("News fetched and stored successfully")
             } catch (e: Exception) {
-                _error.value = "Error fetching news: ${e.message}"
+                val errorMsg = "Error fetching news: ${e.message}"
+                LogManager.e(errorMsg, e)
+                _error.value = errorMsg
             } finally {
                 _isLoading.value = false
+                LogManager.i("refreshNews() completed")
             }
         }
     }
 
     fun analyzeArticle(article: Article) {
+        LogManager.i("analyzeArticle() called for: ${article.title}")
         viewModelScope.launch {
             try {
                 val prefs = repository.getPreferences()
                 if (prefs == null || !prefs.enableAiAnalysis || prefs.openRouterApiKey.isEmpty()) {
+                    LogManager.w("AI analysis not enabled or API key not configured")
                     return@launch
                 }
 
+                LogManager.i("Analyzing article integrity")
                 val analyzed = repository.analyzeArticleIntegrity(article, prefs.openRouterApiKey)
                 database.articleDao().updateArticle(analyzed)
+                LogManager.i("Article analyzed successfully")
             } catch (e: Exception) {
-                _error.value = "Error analyzing article: ${e.message}"
+                val errorMsg = "Error analyzing article: ${e.message}"
+                LogManager.e(errorMsg, e)
+                _error.value = errorMsg
             }
         }
     }
 
     fun toggleSaveArticle(article: Article) {
+        LogManager.i("toggleSaveArticle() called for: ${article.title}")
         viewModelScope.launch {
             database.articleDao().updateArticle(article.copy(saved = !article.saved))
+            LogManager.i("Article save status toggled")
         }
     }
 
     fun savePreferences(preferences: UserPreference) {
+        LogManager.i("savePreferences() called")
         viewModelScope.launch {
             repository.savePreferences(preferences)
+            LogManager.i("Preferences saved")
         }
     }
 

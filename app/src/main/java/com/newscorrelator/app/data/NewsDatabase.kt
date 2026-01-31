@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.newscorrelator.app.utils.LogManager
 
 @Database(
     entities = [Article::class, Source::class, UserPreference::class, ArticleGroup::class],
@@ -21,14 +22,28 @@ abstract class NewsDatabase : RoomDatabase() {
         private var INSTANCE: NewsDatabase? = null
 
         fun getDatabase(context: Context): NewsDatabase {
+            LogManager.i("NewsDatabase.getDatabase() called")
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    NewsDatabase::class.java,
-                    "news_database"
-                ).build()
-                INSTANCE = instance
-                instance
+                val existing = INSTANCE
+                if (existing != null) {
+                    LogManager.i("Returning existing database instance")
+                    existing
+                } else {
+                    LogManager.i("Creating new database instance")
+                    try {
+                        val instance = Room.databaseBuilder(
+                            context.applicationContext,
+                            NewsDatabase::class.java,
+                            "news_database"
+                        ).build()
+                        INSTANCE = instance
+                        LogManager.i("Database instance created successfully")
+                        instance
+                    } catch (e: Exception) {
+                        LogManager.e("Failed to create database instance", e)
+                        throw e
+                    }
+                }
             }
         }
     }

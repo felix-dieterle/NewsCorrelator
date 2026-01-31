@@ -3,6 +3,7 @@ package com.newscorrelator.app.data
 import android.util.Log
 import com.google.gson.Gson
 import com.newscorrelator.app.api.*
+import com.newscorrelator.app.utils.LogManager
 import com.newscorrelator.app.utils.hashString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,15 +23,20 @@ class NewsRepository(
     suspend fun fetchAndStoreNews(apiKey: String, categories: List<String>, sourcesPerTopic: Int) {
         withContext(Dispatchers.IO) {
             try {
+                LogManager.i("NewsRepository.fetchAndStoreNews() started")
+                LogManager.i("Categories: ${categories.joinToString(", ")}, sourcesPerTopic: $sourcesPerTopic")
+                
                 val countries = listOf("us", "gb", "de", "fr", "ca") // Diverse sources
                 val allArticles = mutableListOf<Article>()
 
                 for (category in categories) {
+                    LogManager.i("Fetching news for category: $category")
                     val articlesForCategory = mutableListOf<NewsApiArticle>()
                     
                     // Fetch from multiple countries for diversity
                     for (country in countries.take(sourcesPerTopic)) {
                         try {
+                            LogManager.i("Fetching from country: $country")
                             val response = newsApiService.getTopHeadlines(
                                 apiKey = apiKey,
                                 category = category,
@@ -38,8 +44,9 @@ class NewsRepository(
                                 pageSize = 5
                             )
                             articlesForCategory.addAll(response.articles)
+                            LogManager.i("Fetched ${response.articles.size} articles from $country")
                         } catch (e: Exception) {
-                            Log.e("NewsRepository", "Error fetching from $country: ${e.message}")
+                            LogManager.e("Error fetching from $country: ${e.message}", e)
                         }
                     }
 
@@ -60,6 +67,7 @@ class NewsRepository(
                         )
                     }
                     allArticles.addAll(articles)
+                    LogManager.i("Converted ${articles.size} articles for category $category")
 
                     // Update sources
                     articlesForCategory.forEach { apiArticle ->
@@ -79,13 +87,17 @@ class NewsRepository(
                 }
 
                 // Store articles
+                LogManager.i("Storing ${allArticles.size} articles in database")
                 articleDao.insertArticles(allArticles)
+                LogManager.i("Articles stored successfully")
 
                 // Group articles by topic
+                LogManager.i("Grouping articles by topic")
                 groupArticlesByTopic(allArticles)
+                LogManager.i("NewsRepository.fetchAndStoreNews() completed successfully")
                 
             } catch (e: Exception) {
-                Log.e("NewsRepository", "Error fetching news: ${e.message}", e)
+                LogManager.e("Error in fetchAndStoreNews: ${e.message}", e)
                 throw e
             }
         }
@@ -187,7 +199,7 @@ class NewsRepository(
                     analyzed = true
                 )
             } catch (e: Exception) {
-                Log.e("NewsRepository", "Error analyzing article: ${e.message}", e)
+                LogManager.e("Error analyzing article: ${e.message}", e)
                 article.copy(
                     integrityScore = 5.0f,
                     integrityStatus = "YELLOW",
