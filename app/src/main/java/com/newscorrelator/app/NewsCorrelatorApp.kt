@@ -43,7 +43,6 @@ class NewsCorrelatorApp : Application() {
                 LogManager.e("UNCAUGHT EXCEPTION in thread ${thread.name}", throwable)
                 LogManager.e("Exception class: ${throwable.javaClass.name}")
                 LogManager.e("Exception message: ${throwable.message}")
-                LogManager.e("Stack trace follows:")
                 LogManager.e("App is about to crash!")
                 LogManager.e("Log file location: ${LogManager.getLogFilePath()}")
                 LogManager.e("=================================================")

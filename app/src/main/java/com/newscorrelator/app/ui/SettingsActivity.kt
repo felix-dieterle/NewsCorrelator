@@ -49,11 +49,11 @@ class SettingsActivity : AppCompatActivity() {
 
             // Load current preferences
             try {
-                LogManager.i("Observing preferences")
+                LogManager.i("Setting up preferences observer")
                 viewModel.preferences.observe(this) { prefs ->
                     try {
-                        LogManager.i("Preferences changed: ${prefs != null}")
                         if (prefs != null) {
+                            LogManager.i("Preferences loaded - API Key: ${if (prefs.newsApiKey.isNotEmpty()) "configured" else "empty"}, Categories: ${prefs.categories}")
                             newsApiKeyEdit.setText(prefs.newsApiKey)
                             openRouterApiKeyEdit.setText(prefs.openRouterApiKey)
                             categoriesEdit.setText(prefs.categories)
@@ -61,6 +61,8 @@ class SettingsActivity : AppCompatActivity() {
                             sourcesPerTopicEdit.setText(prefs.sourcesPerTopic.toString())
                             enableAiSwitch.isChecked = prefs.enableAiAnalysis
                             LogManager.i("Preferences loaded into UI")
+                        } else {
+                            LogManager.i("No preferences found - first time setup")
                         }
                     } catch (e: Exception) {
                         LogManager.e("Error loading preferences into UI", e)

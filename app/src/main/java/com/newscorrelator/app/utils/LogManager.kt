@@ -64,13 +64,21 @@ object LogManager {
                 log("INFO", "App started at ${getCurrentTimestamp()}")
                 log("INFO", "Android version: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
                 log("INFO", "Device: ${Build.MANUFACTURER} ${Build.MODEL}")
-                log("INFO", "App version: ${try { context.packageManager.getPackageInfo(context.packageName, 0).versionName } catch (e: Exception) { "unknown" }}")
+                log("INFO", "App version: ${getAppVersion(context)}")
                 log("INFO", "=================================================")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LogManager", e)
             initError = "Failed to initialize: ${e.message}"
             isInitialized = false
+        }
+    }
+    
+    private fun getAppVersion(context: Context): String {
+        return try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        } catch (e: Exception) {
+            "unknown"
         }
     }
     
