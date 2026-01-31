@@ -169,7 +169,7 @@ To create a new release:
 # Build debug APK
 ./gradlew assembleDebug
 
-# Build release APK
+# Build release APK (signed with debug key for testing)
 ./gradlew assembleRelease
 
 # Run tests
@@ -178,6 +178,45 @@ To create a new release:
 # Run lint checks
 ./gradlew lint
 ```
+
+### APK Signing Configuration
+
+The app is configured to use debug signing for both debug and release builds by default. This ensures that:
+- Release APKs can be installed on devices without signing errors
+- Testing and development releases work smoothly
+
+**For production releases**, you should configure proper release signing:
+
+1. Generate a release keystore:
+   ```bash
+   keytool -genkey -v -keystore release.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. Update `app/build.gradle` to add release signing configuration:
+   ```gradle
+   signingConfigs {
+       debug {
+           // Default debug signing
+       }
+       release {
+           storeFile file('path/to/release.keystore')
+           storePassword 'your-keystore-password'
+           keyAlias 'your-key-alias'
+           keyPassword 'your-key-password'
+       }
+   }
+   
+   buildTypes {
+       release {
+           signingConfig signingConfigs.release
+           // ... other config
+       }
+   }
+   ```
+
+3. **Important**: Never commit your keystore file or passwords to version control!
+
+For more information on app signing, see the [Android Developer Documentation](https://developer.android.com/studio/publish/app-signing).
 
 ## Contributing
 Contributions are welcome! Please feel free to submit issues and pull requests.
