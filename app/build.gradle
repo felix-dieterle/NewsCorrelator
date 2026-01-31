@@ -16,17 +16,9 @@ android {
         versionName "1.0"
     }
 
-    signingConfigs {
-        debug {
-            // Default debug signing configuration (automatically provided by Android)
-            // This is used for development and testing
-        }
-    }
-
     buildTypes {
         debug {
             minifyEnabled false
-            signingConfig signingConfigs.debug
         }
         release {
             minifyEnabled false

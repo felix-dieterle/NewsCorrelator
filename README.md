@@ -187,34 +187,62 @@ The app is configured to use debug signing for both debug and release builds by 
 
 **For production releases**, you should configure proper release signing:
 
-1. Generate a release keystore:
+1. Generate a release keystore (store it outside the project directory):
    ```bash
-   keytool -genkey -v -keystore release.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+   keytool -genkey -v -keystore ~/keystore/release.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
    ```
 
-2. Update `app/build.gradle` to add release signing configuration:
+2. Create a `keystore.properties` file in the project root (this file should be gitignored):
+   ```properties
+   storeFile=../keystore/release.keystore
+   storePassword=your-keystore-password
+   keyAlias=my-key-alias
+   keyPassword=your-key-password
+   ```
+
+3. Add `keystore.properties` to `.gitignore`:
+   ```
+   keystore.properties
+   ```
+
+4. Update `app/build.gradle` to use the keystore properties:
    ```gradle
-   signingConfigs {
-       debug {
-           // Default debug signing
-       }
-       release {
-           storeFile file('path/to/release.keystore')
-           storePassword 'your-keystore-password'
-           keyAlias 'your-key-alias'
-           keyPassword 'your-key-password'
-       }
+   def keystorePropertiesFile = rootProject.file("keystore.properties")
+   def keystoreProperties = new Properties()
+   if (keystorePropertiesFile.exists()) {
+       keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
    }
    
-   buildTypes {
-       release {
-           signingConfig signingConfigs.release
-           // ... other config
+   android {
+       ...
+       signingConfigs {
+           release {
+               if (keystorePropertiesFile.exists()) {
+                   storeFile file(keystoreProperties['storeFile'])
+                   storePassword keystoreProperties['storePassword']
+                   keyAlias keystoreProperties['keyAlias']
+                   keyPassword keystoreProperties['keyPassword']
+               }
+           }
+       }
+       
+       buildTypes {
+           release {
+               if (keystorePropertiesFile.exists()) {
+                   signingConfig signingConfigs.release
+               } else {
+                   signingConfig signingConfigs.debug
+               }
+               // ... other config
+           }
        }
    }
    ```
 
-3. **Important**: Never commit your keystore file or passwords to version control!
+5. **Important Security Notes**:
+   - Never commit your keystore file or passwords to version control!
+   - Store the keystore file securely outside the project directory
+   - Keep your keystore password safe - if lost, you cannot update your app on Google Play
 
 For more information on app signing, see the [Android Developer Documentation](https://developer.android.com/studio/publish/app-signing).
 
