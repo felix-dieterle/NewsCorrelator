@@ -84,7 +84,9 @@ class MainActivity : AppCompatActivity() {
             LogManager.i("MainActivity.onCreate() completed successfully")
         } catch (e: Exception) {
             LogManager.e("Error in MainActivity.onCreate()", e)
-            throw e
+            // Show error to user but don't crash the app
+            Toast.makeText(this, "Error initializing main screen: ${e.message}", Toast.LENGTH_LONG).show()
+            // Try to continue despite the error
         }
     }
 
@@ -93,19 +95,34 @@ class MainActivity : AppCompatActivity() {
             LogManager.i("Creating NewsAdapter")
             adapter = NewsAdapter(
                 onArticleClick = { article ->
-                    LogManager.i("Article clicked: ${article.title}")
-                    val intent = Intent(this, ArticleDetailActivity::class.java)
-                    intent.putExtra("article_id", article.id)
-                    startActivity(intent)
+                    try {
+                        LogManager.i("Article clicked: ${article.title}")
+                        val intent = Intent(this, ArticleDetailActivity::class.java)
+                        intent.putExtra("article_id", article.id)
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        LogManager.e("Error opening article detail", e)
+                        Toast.makeText(this, "Error opening article", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 onSaveClick = { article ->
-                    LogManager.i("Save clicked for article: ${article.title}")
-                    viewModel.toggleSaveArticle(article)
+                    try {
+                        LogManager.i("Save clicked for article: ${article.title}")
+                        viewModel.toggleSaveArticle(article)
+                    } catch (e: Exception) {
+                        LogManager.e("Error saving article", e)
+                        Toast.makeText(this, "Error saving article", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 onAnalyzeClick = { article ->
-                    LogManager.i("Analyze clicked for article: ${article.title}")
-                    viewModel.analyzeArticle(article)
-                    Toast.makeText(this, "Analyzing article...", Toast.LENGTH_SHORT).show()
+                    try {
+                        LogManager.i("Analyze clicked for article: ${article.title}")
+                        viewModel.analyzeArticle(article)
+                        Toast.makeText(this, "Analyzing article...", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        LogManager.e("Error analyzing article", e)
+                        Toast.makeText(this, "Error analyzing article", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
             recyclerView.layoutManager = LinearLayoutManager(this)
@@ -113,33 +130,47 @@ class MainActivity : AppCompatActivity() {
             LogManager.i("RecyclerView adapter set")
         } catch (e: Exception) {
             LogManager.e("Error in setupRecyclerView()", e)
-            throw e
+            // Don't re-throw, let the app continue
+            Toast.makeText(this, "Error setting up article list", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun observeViewModel() {
         try {
             viewModel.articles.observe(this) { articles ->
-                LogManager.i("Articles updated: ${articles.size} articles")
-                adapter.submitList(articles)
+                try {
+                    LogManager.i("Articles updated: ${articles.size} articles")
+                    adapter.submitList(articles)
+                } catch (e: Exception) {
+                    LogManager.e("Error updating article list", e)
+                }
             }
 
             viewModel.isLoading.observe(this) { isLoading ->
-                LogManager.i("Loading state changed: $isLoading")
-                swipeRefresh.isRefreshing = isLoading
-                progressBar.visibility = if (isLoading && adapter.itemCount == 0) View.VISIBLE else View.GONE
+                try {
+                    LogManager.i("Loading state changed: $isLoading")
+                    swipeRefresh.isRefreshing = isLoading
+                    progressBar.visibility = if (isLoading && adapter.itemCount == 0) View.VISIBLE else View.GONE
+                } catch (e: Exception) {
+                    LogManager.e("Error updating loading state", e)
+                }
             }
 
             viewModel.error.observe(this) { error ->
-                error?.let {
-                    LogManager.e("ViewModel error: $it")
-                    Toast.makeText(this, it, Toast.LENGTH_LONG).show()
-                    viewModel.clearError()
+                try {
+                    error?.let {
+                        LogManager.e("ViewModel error: $it")
+                        Toast.makeText(this, it, Toast.LENGTH_LONG).show()
+                        viewModel.clearError()
+                    }
+                } catch (e: Exception) {
+                    LogManager.e("Error displaying error message", e)
                 }
             }
         } catch (e: Exception) {
             LogManager.e("Error in observeViewModel()", e)
-            throw e
+            // Don't re-throw, let the app continue
+            Toast.makeText(this, "Error setting up data observers", Toast.LENGTH_SHORT).show()
         }
     }
 
