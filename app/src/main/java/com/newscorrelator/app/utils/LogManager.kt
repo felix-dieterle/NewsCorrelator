@@ -1,6 +1,7 @@
 package com.newscorrelator.app.utils
 
 import android.content.Context
+import android.os.Build
 import android.os.Environment
 import android.util.Log
 import java.io.File
@@ -19,9 +20,23 @@ object LogManager {
     fun init(context: Context) {
         try {
             // Use the Downloads directory
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!downloadsDir.exists()) {
-                downloadsDir.mkdirs()
+            // For Android 10+, use the scoped storage approach which doesn't require permissions
+            // For older versions, use the deprecated API which still works
+            val downloadsDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+: Use app-specific directory in Downloads
+                File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "").also {
+                    if (!it.exists()) {
+                        it.mkdirs()
+                    }
+                }
+            } else {
+                // Android 9 and below: Use public Downloads directory
+                @Suppress("DEPRECATION")
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).also {
+                    if (!it.exists()) {
+                        it.mkdirs()
+                    }
+                }
             }
             
             logFile = File(downloadsDir, LOG_FILE_NAME)
@@ -30,8 +45,8 @@ object LogManager {
             // Write initialization message
             log("INFO", "LogManager initialized. Log file: ${logFile?.absolutePath}")
             log("INFO", "App started at ${getCurrentTimestamp()}")
-            log("INFO", "Android version: ${android.os.Build.VERSION.SDK_INT}")
-            log("INFO", "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            log("INFO", "Android version: ${Build.VERSION.SDK_INT}")
+            log("INFO", "Device: ${Build.MANUFACTURER} ${Build.MODEL}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LogManager", e)
         }

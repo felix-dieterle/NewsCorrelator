@@ -3,7 +3,6 @@ package com.newscorrelator.app
 import android.app.Application
 import android.os.Build
 import com.newscorrelator.app.utils.LogManager
-import kotlin.system.exitProcess
 
 class NewsCorrelatorApp : Application() {
     override fun onCreate() {

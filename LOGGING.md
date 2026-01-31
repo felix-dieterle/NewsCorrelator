@@ -6,15 +6,26 @@ The NewsCorrelator app now includes comprehensive debug logging to help diagnose
 
 ## Log File Location
 
-All debug logs are automatically written to:
+All debug logs are automatically written to a text file in the Downloads folder:
+
+**For Android 10 (API 29) and above:**
+```
+/storage/emulated/0/Android/data/com.newscorrelator.app/files/Download/newscorrelator_debug.txt
+```
+
+**For Android 9 (API 28) and below:**
 ```
 /storage/emulated/0/Download/newscorrelator_debug.txt
 ```
 
 This is typically accessible through:
-- **File Manager**: Open your device's file manager and navigate to the Downloads folder
-- **Via ADB**: `adb pull /sdcard/Download/newscorrelator_debug.txt`
-- **Android Studio**: Use Device File Explorer to browse to `/sdcard/Download/`
+- **File Manager**: Open your device's file manager and navigate to the Downloads folder (Android 9 and below) or Android/data/com.newscorrelator.app/files/Download (Android 10+)
+- **Via ADB**: 
+  - Android 9 and below: `adb pull /sdcard/Download/newscorrelator_debug.txt`
+  - Android 10+: `adb pull "/sdcard/Android/data/com.newscorrelator.app/files/Download/newscorrelator_debug.txt"`
+- **Android Studio**: Use Device File Explorer to browse to the appropriate location
+
+**Note:** On Android 10+, the app uses scoped storage which places the log file in the app-specific directory. This doesn't require special storage permissions but the file will be deleted if the app is uninstalled.
 
 ## What Gets Logged
 
