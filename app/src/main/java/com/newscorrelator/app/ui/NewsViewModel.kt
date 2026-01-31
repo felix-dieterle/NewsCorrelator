@@ -10,22 +10,14 @@ import com.newscorrelator.app.utils.LogManager
 import kotlinx.coroutines.launch
 
 class NewsViewModel(application: Application) : AndroidViewModel(application) {
-    init {
-        LogManager.i("NewsViewModel initializing")
-    }
-    
-    private val database = NewsDatabase.getDatabase(application).also {
-        LogManager.i("NewsDatabase obtained")
-    }
+    private val database = NewsDatabase.getDatabase(application)
     
     private val repository = NewsRepository(
         database.articleDao(),
         database.sourceDao(),
         database.userPreferenceDao(),
         database.articleGroupDao()
-    ).also {
-        LogManager.i("NewsRepository created")
-    }
+    )
 
     val articles: LiveData<List<Article>> = database.articleDao().getAllArticles()
     val savedArticles: LiveData<List<Article>> = database.articleDao().getSavedArticles()
@@ -37,8 +29,11 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
     
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
-
+    
     init {
+        LogManager.i("NewsViewModel initializing")
+        LogManager.i("NewsDatabase obtained")
+        LogManager.i("NewsRepository created")
         LogManager.i("NewsViewModel initialized successfully")
     }
 
