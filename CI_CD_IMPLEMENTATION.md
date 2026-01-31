@@ -30,18 +30,21 @@ The project now has automated CI/CD pipelines using GitHub Actions that provide:
 - Push to `main` branch (excluding documentation-only changes)
 
 **Jobs:**
-1. Extracts version from `app/build.gradle` (`versionName` and `versionCode`)
-2. Checks if a release with this version already exists
-3. If version is new:
-   - Builds release APK using `./gradlew assembleRelease`
-   - Creates a GitHub release with:
-     - Tag: `v{versionName}-{versionCode}` (e.g., `v1.0-1`)
-     - Title: `NewsCorrelator {versionName} (Build {versionCode})`
-     - Changelog: Auto-generated from commits since last release
-     - APK artifact: Downloadable APK file
-4. If version already exists, skips release creation
+1. Checks if the commit is an automated version bump (to prevent infinite loops)
+2. Extracts version from `app/build.gradle` (`versionName` and `versionCode`)
+3. Checks if a release with this version already exists
+4. If version tag exists:
+   - **Automatically increments** the `versionCode`
+   - Updates `app/build.gradle` with the new version
+   - Commits and pushes the change back to the repository
+5. Builds release APK using `./gradlew assembleRelease`
+6. Creates a GitHub release with:
+   - Tag: `v{versionName}-{versionCode}` (e.g., `v1.0-3`)
+   - Title: `NewsCorrelator {versionName} (Build {versionCode})`
+   - Changelog: Auto-generated from commits since last release
+   - APK artifact: Downloadable APK file
 
-**Purpose:** Automatically creates releases with downloadable APKs for every version increment.
+**Purpose:** Automatically creates releases with downloadable APKs for every merge to main, with automatic version incrementing to prevent conflicts.
 
 ## Gradle Wrapper
 
@@ -52,29 +55,38 @@ The project now includes the Gradle wrapper (`gradlew`, `gradlew.bat`, and `grad
 
 ## Creating a New Release
 
-To create a new release:
+Releases are now **automatically created** on every merge to `main`:
 
-1. Update version in `app/build.gradle`:
-   ```gradle
-   defaultConfig {
-       ...
-       versionCode 2      // Increment this
-       versionName "1.1"  // Update if needed
-   }
-   ```
+1. The workflow automatically detects if the current version tag already exists
+2. If it exists, it **automatically increments** the `versionCode` in `app/build.gradle`
+3. The incremented version is committed back to the repository with `[skip release]` tag
+4. A new release is created with the incremented version
 
-2. Commit and merge to `main`:
-   ```bash
-   git add app/build.gradle
-   git commit -m "Bump version to 1.1 (build 2)"
-   git push origin main
-   ```
+**Manual version updates (optional):**
 
-3. The release workflow will automatically:
-   - Build the APK
-   - Create a GitHub release tagged `v1.1-2`
-   - Upload the APK as a downloadable artifact
-   - Generate release notes from commit messages
+If you want to update the version name (e.g., from 1.0 to 1.1), you can manually edit `app/build.gradle`:
+
+```gradle
+defaultConfig {
+    ...
+    versionCode 2      // This will be auto-incremented if tag exists
+    versionName "1.1"  // Update this manually for major/minor versions
+}
+```
+
+Then commit and merge to `main`:
+```bash
+git add app/build.gradle
+git commit -m "Update version name to 1.1"
+git push origin main
+```
+
+The workflow will automatically:
+- Increment the build number if needed
+- Build the APK
+- Create a GitHub release tagged `v1.1-X` (where X is the auto-incremented build number)
+- Upload the APK as a downloadable artifact
+- Generate release notes from commit messages
 
 ## Local Development
 
@@ -98,11 +110,12 @@ You can run the same checks locally:
 
 ✅ **Automated Testing**: Every PR and push is automatically tested
 ✅ **Quality Gates**: Linting and tests must pass before merge
-✅ **Automated Releases**: No manual release process required
+✅ **Automated Releases**: No manual release process required - releases created on every merge
+✅ **Auto-incrementing Versions**: Build numbers automatically increment to prevent conflicts
 ✅ **Deployable Artifacts**: APK files available for every release
 ✅ **Version Control**: Releases tied to version numbers in code
 ✅ **Changelog Generation**: Automatic release notes from commits
-✅ **No Duplicate Releases**: Version check prevents accidental duplicates
+✅ **No Duplicate Releases**: Automatic version incrementing prevents duplicate tags
 
 ## Future Enhancements
 

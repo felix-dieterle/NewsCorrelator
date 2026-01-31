@@ -20,7 +20,19 @@ jobs:
       with:
         fetch-depth: 0
         
+    - name: Check if triggered by version bump
+      id: check_trigger
+      run: |
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        if [[ "$COMMIT_MSG" == *"[skip release]"* ]]; then
+          echo "Skipping release - triggered by automated version bump"
+          echo "SKIP_RELEASE=true" >> $GITHUB_ENV
+        else
+          echo "SKIP_RELEASE=false" >> $GITHUB_ENV
+        fi
+        
     - name: Set up JDK 17
+      if: env.SKIP_RELEASE == 'false'
       uses: actions/setup-java@v4
       with:
         java-version: '17'
@@ -28,9 +40,11 @@ jobs:
         cache: gradle
         
     - name: Grant execute permission for gradlew
+      if: env.SKIP_RELEASE == 'false'
       run: chmod +x gradlew
       
-    - name: Extract version from build.gradle
+    - name: Extract and increment version
+      if: env.SKIP_RELEASE == 'false'
       id: get_version
       run: |
         VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"' | tr -d ' ')
@@ -43,27 +57,41 @@ jobs:
           exit 1
         fi
         
+        echo "Current version: $VERSION_NAME (Build $VERSION_CODE)"
+        
+        # Check if tag with current version exists
+        CURRENT_TAG="v${VERSION_NAME}-${VERSION_CODE}"
+        if git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+          echo "Tag $CURRENT_TAG already exists, incrementing version..."
+          # Increment versionCode
+          NEW_VERSION_CODE=$((VERSION_CODE + 1))
+          
+          # Update build.gradle with new versionCode
+          sed -i "s/versionCode $VERSION_CODE/versionCode $NEW_VERSION_CODE/" app/build.gradle
+          
+          echo "Incremented versionCode from $VERSION_CODE to $NEW_VERSION_CODE"
+          VERSION_CODE=$NEW_VERSION_CODE
+          
+          # Commit and push the version bump
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle
+          git commit -m "Bump versionCode to $NEW_VERSION_CODE [skip release]"
+          git push
+        else
+          echo "Tag $CURRENT_TAG does not exist, using current version"
+        fi
+        
         echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_ENV
         echo "VERSION_CODE=${VERSION_CODE}" >> $GITHUB_ENV
         echo "TAG=v${VERSION_NAME}-${VERSION_CODE}" >> $GITHUB_ENV
         
-    - name: Check if tag exists
-      id: check_tag
-      run: |
-        if git rev-parse "${{ env.TAG }}" >/dev/null 2>&1; then
-          echo "Tag ${{ env.TAG }} already exists"
-          echo "TAG_EXISTS=true" >> $GITHUB_ENV
-        else
-          echo "Tag ${{ env.TAG }} does not exist"
-          echo "TAG_EXISTS=false" >> $GITHUB_ENV
-        fi
-        
     - name: Build release APK
-      if: env.TAG_EXISTS == 'false'
+      if: env.SKIP_RELEASE == 'false'
       run: ./gradlew assembleRelease
       
     - name: Rename APK
-      if: env.TAG_EXISTS == 'false'
+      if: env.SKIP_RELEASE == 'false'
       run: |
         mkdir -p release-artifacts
         
@@ -82,7 +110,7 @@ jobs:
         fi
         
     - name: Generate changelog
-      if: env.TAG_EXISTS == 'false'
+      if: env.SKIP_RELEASE == 'false'
       id: changelog
       run: |
         # Get commits since last tag
@@ -104,7 +132,7 @@ jobs:
         fi
         
     - name: Create Release
-      if: env.TAG_EXISTS == 'false'
+      if: env.SKIP_RELEASE == 'false'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.TAG }}
@@ -117,8 +145,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Skip release (tag exists)
-      if: env.TAG_EXISTS == 'true'
-      run: |
-        echo "Skipping release creation - tag ${{ env.TAG }} already exists"
-        echo "Increment versionCode or versionName in app/build.gradle to create a new release"
+
