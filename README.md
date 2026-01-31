@@ -152,17 +152,20 @@ This project uses GitHub Actions for continuous integration. On every push and p
 
 ### Automated Releases
 On every merge to the `main` branch:
+- The workflow automatically checks if a release with the current version exists
+- If the version tag already exists, the `versionCode` is **automatically incremented**
 - A release APK is automatically built using `./gradlew assembleRelease`
 - A new GitHub release is created with:
   - Version tag based on `versionName` and `versionCode` from `app/build.gradle`
   - Downloadable APK artifact
   - Automatically generated changelog
-- Releases are only created when the version is incremented to avoid duplicates
 
 To create a new release:
-1. Update `versionCode` and/or `versionName` in `app/build.gradle`
-2. Merge your changes to the `main` branch
+1. Simply merge your changes to the `main` branch
+2. The build number (`versionCode`) will be automatically incremented if needed
 3. The release will be automatically created and published
+
+**Optional**: To update the version name (e.g., from 1.0 to 1.1), manually update `versionName` in `app/build.gradle` before merging to main.
 
 ### Building Locally
 ```bash
