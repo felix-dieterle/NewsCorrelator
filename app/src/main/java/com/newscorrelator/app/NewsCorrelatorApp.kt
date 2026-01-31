@@ -1,6 +1,7 @@
 package com.newscorrelator.app
 
 import android.app.Application
+import android.os.Build
 import com.newscorrelator.app.utils.LogManager
 import kotlin.system.exitProcess
 
@@ -12,6 +13,12 @@ class NewsCorrelatorApp : Application() {
         try {
             LogManager.init(this)
             LogManager.i("Application onCreate() started")
+            LogManager.i("Android SDK version: ${Build.VERSION.SDK_INT}")
+            
+            // For Android 10+, scoped storage allows writing to Downloads without special permissions
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                LogManager.w("Running on Android ${Build.VERSION.SDK_INT}. Storage permissions may be required.")
+            }
         } catch (e: Exception) {
             android.util.Log.e("NewsCorrelatorApp", "Failed to initialize LogManager", e)
         }
