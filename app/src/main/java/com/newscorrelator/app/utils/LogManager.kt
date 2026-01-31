@@ -16,6 +16,7 @@ object LogManager {
     
     private var logFile: File? = null
     private var isInitialized = false
+    private var initError: String? = null
     
     fun init(context: Context) {
         try {
@@ -26,7 +27,8 @@ object LogManager {
                 // Android 10+: Use app-specific directory in Downloads
                 File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "").also {
                     if (!it.exists()) {
-                        it.mkdirs()
+                        val created = it.mkdirs()
+                        Log.i(TAG, "Downloads directory created: $created at ${it.absolutePath}")
                     }
                 }
             } else {
@@ -34,21 +36,41 @@ object LogManager {
                 @Suppress("DEPRECATION")
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).also {
                     if (!it.exists()) {
-                        it.mkdirs()
+                        val created = it.mkdirs()
+                        Log.i(TAG, "Downloads directory created: $created at ${it.absolutePath}")
                     }
                 }
             }
             
             logFile = File(downloadsDir, LOG_FILE_NAME)
-            isInitialized = true
+            
+            // Test if we can write to the file
+            try {
+                FileWriter(logFile, true).use { writer ->
+                    // Test write
+                }
+                isInitialized = true
+                Log.i(TAG, "LogManager initialized successfully. Log file: ${logFile?.absolutePath}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Cannot write to log file at ${logFile?.absolutePath}", e)
+                initError = "Cannot write to log file: ${e.message}"
+                isInitialized = false
+            }
             
             // Write initialization message
-            log("INFO", "LogManager initialized. Log file: ${logFile?.absolutePath}")
-            log("INFO", "App started at ${getCurrentTimestamp()}")
-            log("INFO", "Android version: ${Build.VERSION.SDK_INT}")
-            log("INFO", "Device: ${Build.MANUFACTURER} ${Build.MODEL}")
+            if (isInitialized) {
+                log("INFO", "=================================================")
+                log("INFO", "LogManager initialized. Log file: ${logFile?.absolutePath}")
+                log("INFO", "App started at ${getCurrentTimestamp()}")
+                log("INFO", "Android version: ${Build.VERSION.SDK_INT} (${Build.VERSION.RELEASE})")
+                log("INFO", "Device: ${Build.MANUFACTURER} ${Build.MODEL}")
+                log("INFO", "App version: ${try { context.packageManager.getPackageInfo(context.packageName, 0).versionName } catch (e: Exception) { "unknown" }}")
+                log("INFO", "=================================================")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize LogManager", e)
+            initError = "Failed to initialize: ${e.message}"
+            isInitialized = false
         }
     }
     
@@ -56,7 +78,7 @@ object LogManager {
         val timestamp = getCurrentTimestamp()
         val logMessage = "[$timestamp] [$level] $message"
         
-        // Also log to Android logcat
+        // Always log to Android logcat
         when (level) {
             "ERROR" -> Log.e(TAG, message, throwable)
             "WARN" -> Log.w(TAG, message, throwable)
@@ -65,9 +87,9 @@ object LogManager {
             else -> Log.v(TAG, message)
         }
         
-        // Write to file
-        try {
-            if (isInitialized && logFile != null) {
+        // Write to file if initialized
+        if (isInitialized && logFile != null) {
+            try {
                 FileWriter(logFile, true).use { writer ->
                     PrintWriter(writer).use { printer ->
                         printer.println(logMessage)
@@ -77,9 +99,15 @@ object LogManager {
                         }
                     }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to write to log file", e)
+                // Don't try to log this error to file to avoid infinite loop
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to write to log file", e)
+        } else {
+            // Only log initialization errors once
+            if (initError != null && level == "INFO" && message.contains("LogManager initialized")) {
+                Log.w(TAG, "LogManager not fully initialized: $initError. Logs will only appear in Logcat.")
+            }
         }
     }
     
@@ -96,11 +124,15 @@ object LogManager {
     fun clearLog() {
         try {
             logFile?.delete()
-            log("INFO", "Log file cleared")
+            log("INFO", "Log file cleared and restarted")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to clear log file", e)
         }
     }
     
     fun getLogFilePath(): String? = logFile?.absolutePath
+    
+    fun getInitError(): String? = initError
+    
+    fun isFullyInitialized(): Boolean = isInitialized && initError == null
 }
