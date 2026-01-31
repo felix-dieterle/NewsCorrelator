@@ -23,8 +23,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // For production, configure proper signing:
-            // signingConfig signingConfigs.release
+            // Use debug signing for development/testing releases
+            // This allows the APK to be installed on devices
+            // For production releases, replace with proper release signing configuration
+            signingConfig signingConfigs.debug
         }
     }
     

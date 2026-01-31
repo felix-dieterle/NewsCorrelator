@@ -62,23 +62,19 @@ jobs:
       if: env.TAG_EXISTS == 'false'
       run: ./gradlew assembleRelease
       
-    - name: Sign APK (if signing config exists)
-      if: env.TAG_EXISTS == 'false'
-      continue-on-error: true
-      run: |
-        echo "Note: APK signing would happen here if signing configuration is set up"
-        echo "For now, the unsigned release APK will be used"
-        
     - name: Rename APK
       if: env.TAG_EXISTS == 'false'
       run: |
         mkdir -p release-artifacts
         
-        # Try to find the APK file
-        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
-        elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
+        # The APK should be signed with debug keystore (configured in build.gradle)
+        # Try to find the APK file (prefer signed over unsigned)
+        if [ -f app/build/outputs/apk/release/app-release.apk ]; then
           cp app/build/outputs/apk/release/app-release.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+          echo "✓ Found and copied signed APK"
+        elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/NewsCorrelator-${{ env.TAG }}.apk
+          echo "⚠ Warning: Using unsigned APK - this may not install on devices"
         else
           echo "Error: Could not find release APK file"
           ls -la app/build/outputs/apk/release/ || echo "Release directory not found"
