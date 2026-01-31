@@ -76,7 +76,7 @@ object LogManager {
     
     private fun getAppVersion(context: Context): String {
         return try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
         } catch (e: Exception) {
             "unknown"
         }
