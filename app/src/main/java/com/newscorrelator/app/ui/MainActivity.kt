@@ -81,6 +81,9 @@ class MainActivity : AppCompatActivity() {
                 LogManager.i("Swipe refresh triggered")
                 viewModel.refreshNews()
             }
+            
+            // Update rate limit indicators immediately
+            updateRateLimitIndicators()
 
             // Load initial data if preferences are set
             viewModel.preferences.observe(this) { prefs ->
