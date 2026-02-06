@@ -190,8 +190,8 @@ object RateLimitManager {
                 val hourlyUsage = requestCounters["$API_NEWS:hour"]?.get(ONE_HOUR)?.count?.get() ?: 0
                 val dailyUsage = requestCounters["$API_NEWS:day"]?.get(ONE_DAY)?.count?.get() ?: 0
                 
-                val hourlyPercent = (hourlyUsage * 100) / NEWS_API_LIMIT_PER_HOUR
-                val dailyPercent = (dailyUsage * 100) / NEWS_API_LIMIT_PER_DAY
+                val hourlyPercent = (hourlyUsage * 100.0 / NEWS_API_LIMIT_PER_HOUR).toInt()
+                val dailyPercent = (dailyUsage * 100.0 / NEWS_API_LIMIT_PER_DAY).toInt()
                 
                 maxOf(hourlyPercent, dailyPercent)
             }
@@ -199,8 +199,8 @@ object RateLimitManager {
                 val minuteUsage = requestCounters["$API_OPENROUTER:minute"]?.get(ONE_MINUTE)?.count?.get() ?: 0
                 val hourlyUsage = requestCounters["$API_OPENROUTER:hour"]?.get(ONE_HOUR)?.count?.get() ?: 0
                 
-                val minutePercent = (minuteUsage * 100) / OPENROUTER_LIMIT_PER_MINUTE
-                val hourlyPercent = (hourlyUsage * 100) / OPENROUTER_LIMIT_PER_HOUR
+                val minutePercent = (minuteUsage * 100.0 / OPENROUTER_LIMIT_PER_MINUTE).toInt()
+                val hourlyPercent = (hourlyUsage * 100.0 / OPENROUTER_LIMIT_PER_HOUR).toInt()
                 
                 maxOf(minutePercent, hourlyPercent)
             }

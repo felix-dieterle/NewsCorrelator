@@ -110,14 +110,14 @@ class MainActivity : AppCompatActivity() {
     private fun updateRateLimitIndicators() {
         try {
             // Update NewsAPI indicator
-            val (newsUsagePercent, newsColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_NEWS)
+            val (_, newsColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_NEWS)
             newsApiIndicator.setBackgroundColor(getColorForIndicator(newsColor))
             
             // Update OpenRouter indicator
-            val (openRouterUsagePercent, openRouterColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_OPENROUTER)
+            val (_, openRouterColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_OPENROUTER)
             openRouterIndicator.setBackgroundColor(getColorForIndicator(openRouterColor))
             
-            LogManager.d("Rate limit indicators updated - NewsAPI: $newsUsagePercent% ($newsColor), OpenRouter: $openRouterUsagePercent% ($openRouterColor)")
+            LogManager.d("Rate limit indicators updated - NewsAPI: $newsColor, OpenRouter: $openRouterColor")
         } catch (e: Exception) {
             LogManager.e("Error updating rate limit indicators", e)
         }
