@@ -3,9 +3,9 @@ package com.newscorrelator.app.data
 import android.util.Log
 import com.google.gson.Gson
 import com.newscorrelator.app.api.*
-import com.newscorrelator.app.utils.LogManager
-import com.newscorrelator.app.utils.hashString
+import com.newscorrelator.app.utils.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,13 +20,28 @@ class NewsRepository(
     private val openRouterService = ApiClient.openRouterService
     private val gson = Gson()
 
-    suspend fun fetchAndStoreNews(apiKey: String, categories: List<String>, sourcesPerTopic: Int) {
+    suspend fun fetchAndStoreNews(apiKey: String, categories: List<String>, sourcesPerTopic: Int, isAiMode: Boolean = false) {
         withContext(Dispatchers.IO) {
             try {
-                LogManager.i("NewsRepository.fetchAndStoreNews() started")
+                LogManager.i("NewsRepository.fetchAndStoreNews() started (AI mode: $isAiMode)")
                 LogManager.i("Categories: ${categories.joinToString(", ")}, sourcesPerTopic: $sourcesPerTopic")
                 
+                // Optimize query parameters based on mode
+                val queryOptimization = QueryOptimizer.optimizeNewsQuery(
+                    isAiMode = isAiMode,
+                    requestedPageSize = 5,
+                    sourcesPerTopic = sourcesPerTopic
+                )
+                
                 val countries = listOf("us", "gb", "de", "fr", "ca") // Diverse sources
+                val optimizedCountries = QueryOptimizer.optimizeCountriesList(
+                    requestedCountries = countries,
+                    isAiMode = isAiMode,
+                    maxSources = queryOptimization.maxCountries
+                )
+                
+                LogManager.i("Optimized: pageSize=${queryOptimization.pageSize}, countries=${optimizedCountries.size}")
+                
                 val allArticles = mutableListOf<Article>()
 
                 for (category in categories) {
@@ -34,17 +49,53 @@ class NewsRepository(
                     val articlesForCategory = mutableListOf<NewsApiArticle>()
                     
                     // Fetch from multiple countries for diversity
-                    for (country in countries.take(sourcesPerTopic)) {
+                    for (country in optimizedCountries) {
                         try {
-                            LogManager.i("Fetching from country: $country")
-                            val response = newsApiService.getTopHeadlines(
-                                apiKey = apiKey,
+                            // Generate cache key
+                            val cacheKey = CacheManager.generateNewsQueryKey(
                                 category = category,
                                 country = country,
-                                pageSize = 5
+                                query = null,
+                                pageSize = queryOptimization.pageSize
                             )
+                            
+                            // Check cache first
+                            val cachedResponse = CacheManager.getCachedNewsResponse<NewsApiResponse>(cacheKey)
+                            val response = if (cachedResponse != null) {
+                                LogManager.i("Using cached response for $country/$category")
+                                cachedResponse
+                            } else {
+                                // Apply rate limiting before API call
+                                RateLimitManager.checkAndTrackRequest(
+                                    RateLimitManager.API_NEWS,
+                                    isAiMode
+                                )
+                                
+                                LogManager.i("Fetching from country: $country")
+                                val apiResponse = newsApiService.getTopHeadlines(
+                                    apiKey = apiKey,
+                                    category = category,
+                                    country = country,
+                                    pageSize = queryOptimization.pageSize
+                                )
+                                
+                                // Cache the response
+                                CacheManager.cacheNewsResponse(cacheKey, apiResponse, isAiMode)
+                                apiResponse
+                            }
+                            
                             articlesForCategory.addAll(response.articles)
-                            LogManager.i("Fetched ${response.articles.size} articles from $country")
+                            LogManager.i("Got ${response.articles.size} articles from $country")
+                            
+                            // Add small delay between requests to be respectful
+                            val delayTime = QueryOptimizer.calculateOptimalDelay(
+                                RateLimitManager.API_NEWS,
+                                isAiMode,
+                                RateLimitManager.getUsageStats(RateLimitManager.API_NEWS)["daily"] ?: 0
+                            )
+                            if (delayTime > 0) {
+                                delay(delayTime)
+                            }
                         } catch (e: Exception) {
                             LogManager.e("Error fetching from $country: ${e.message}", e)
                         }
@@ -132,9 +183,30 @@ class NewsRepository(
         }
     }
 
-    suspend fun analyzeArticleIntegrity(article: Article, apiKey: String): Article {
+    suspend fun analyzeArticleIntegrity(article: Article, apiKey: String, isAiMode: Boolean = true): Article {
         return withContext(Dispatchers.IO) {
             try {
+                // Check cache first
+                val cachedAnalysis = CacheManager.getCachedAiAnalysis<IntegrityAnalysis>(article.url)
+                if (cachedAnalysis != null) {
+                    LogManager.i("Using cached analysis for article: ${article.title}")
+                    
+                    // Update source trust score
+                    updateSourceTrustScore(article, cachedAnalysis)
+                    
+                    return@withContext article.copy(
+                        integrityScore = cachedAnalysis.score,
+                        integrityStatus = cachedAnalysis.status,
+                        analyzed = true
+                    )
+                }
+                
+                // Apply rate limiting before AI API call
+                RateLimitManager.checkAndTrackRequest(
+                    RateLimitManager.API_OPENROUTER,
+                    isAiMode
+                )
+                
                 val prompt = """
                     Analyze this news article for integrity and potential manipulation:
                     
@@ -178,20 +250,12 @@ class NewsRepository(
                         factCheckResults = analysisText
                     )
                 }
-
+                
+                // Cache the analysis result
+                CacheManager.cacheAiAnalysis(article.url, analysis)
+                
                 // Update source trust score based on article integrity
-                val source = sourceDao.getSourceById(article.sourceId)
-                if (source != null) {
-                    val newScore = ((source.trustScore * source.articlesAnalyzed) + analysis.score) / 
-                                   (source.articlesAnalyzed + 1)
-                    sourceDao.updateSource(
-                        source.copy(
-                            trustScore = newScore,
-                            articlesAnalyzed = source.articlesAnalyzed + 1,
-                            lastUpdated = System.currentTimeMillis()
-                        )
-                    )
-                }
+                updateSourceTrustScore(article, analysis)
 
                 article.copy(
                     integrityScore = analysis.score,
@@ -206,6 +270,21 @@ class NewsRepository(
                     analyzed = true
                 )
             }
+        }
+    }
+    
+    private suspend fun updateSourceTrustScore(article: Article, analysis: IntegrityAnalysis) {
+        val source = sourceDao.getSourceById(article.sourceId)
+        if (source != null) {
+            val newScore = ((source.trustScore * source.articlesAnalyzed) + analysis.score) / 
+                           (source.articlesAnalyzed + 1)
+            sourceDao.updateSource(
+                source.copy(
+                    trustScore = newScore,
+                    articlesAnalyzed = source.articlesAnalyzed + 1,
+                    lastUpdated = System.currentTimeMillis()
+                )
+            )
         }
     }
 
