@@ -91,14 +91,15 @@ class NewsRepository(
                             articlesForCategory.addAll(response.articles)
                             LogManager.i("Got ${response.articles.size} articles from $country")
                             
-                            // Add small delay between requests to be respectful
+                            // Add optimized delay between requests based on remaining quota
                             val stats = RateLimitManager.getUsageStats(RateLimitManager.API_NEWS)
                             val usedRequests = stats["hourly"] ?: 0
-                            val remainingRequests = RateLimitManager.NEWS_API_LIMIT_PER_HOUR - usedRequests
+                            // Calculate remaining requests (coerceAtLeast protects against overuse)
+                            val remainingRequests = (RateLimitManager.NEWS_API_LIMIT_PER_HOUR - usedRequests).coerceAtLeast(0)
                             val delayTime = QueryOptimizer.calculateOptimalDelay(
                                 RateLimitManager.API_NEWS,
                                 isAiMode,
-                                remainingRequests.coerceAtLeast(0)
+                                remainingRequests
                             )
                             if (delayTime > 0) {
                                 delay(delayTime)
