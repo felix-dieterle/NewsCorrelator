@@ -23,9 +23,6 @@ class NewsRepository(
     private val newsApiService = ApiClient.newsApiService
     private val openRouterService = ApiClient.openRouterService
     private val gson = Gson()
-    
-    // Rate limit constant for calculations
-    private val NEWS_API_LIMIT_PER_HOUR = 10
 
     suspend fun fetchAndStoreNews(apiKey: String, categories: List<String>, sourcesPerTopic: Int, isAiMode: Boolean = false) {
         withContext(Dispatchers.IO) {
@@ -97,7 +94,7 @@ class NewsRepository(
                             // Add small delay between requests to be respectful
                             val stats = RateLimitManager.getUsageStats(RateLimitManager.API_NEWS)
                             val usedRequests = stats["hourly"] ?: 0
-                            val remainingRequests = NEWS_API_LIMIT_PER_HOUR - usedRequests
+                            val remainingRequests = RateLimitManager.NEWS_API_LIMIT_PER_HOUR - usedRequests
                             val delayTime = QueryOptimizer.calculateOptimalDelay(
                                 RateLimitManager.API_NEWS,
                                 isAiMode,

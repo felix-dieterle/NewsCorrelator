@@ -21,7 +21,7 @@ object RateLimitManager {
     
     // Rate limits (requests per time window)
     // NewsAPI: 100 requests/day free tier
-    private const val NEWS_API_LIMIT_PER_HOUR = 10 // Conservative: ~240/day max
+    const val NEWS_API_LIMIT_PER_HOUR = 10 // Conservative: ~240/day max
     private const val NEWS_API_LIMIT_PER_DAY = 90 // Leave buffer for errors
     
     // OpenRouter: Varies by model, but free tier has limits

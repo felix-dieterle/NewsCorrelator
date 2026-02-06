@@ -121,19 +121,13 @@ object QueryOptimizer {
         // Get or create mutex for this key
         val mutex = inFlightRequests.getOrPut(key) { Mutex() }
         
-        return try {
-            // If already locked, this will wait for the first request to complete
-            mutex.withLock {
-                LogManager.i("Executing request for key: $key")
-                block()
-            }
-        } finally {
-            // Only remove if no one else is waiting (this is still racy but safer)
-            // In production, consider using a reference counting approach
-            if (!mutex.isLocked) {
-                inFlightRequests.remove(key, mutex)
-            }
+        // If already locked, this will wait for the first request to complete
+        return mutex.withLock {
+            LogManager.i("Executing request for key: $key")
+            block()
         }
+        // Note: We don't remove the mutex to avoid race conditions
+        // ConcurrentHashMap will clean up unused entries naturally
     }
     
     /**
