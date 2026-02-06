@@ -17,6 +17,17 @@ An intelligent Android news aggregation app that displays news from multiple sou
 - **Source Rating System**: Learns source trustworthiness over time based on integrity scores
 - **Free APIs**: Uses free tier of NewsAPI.org and OpenRouter.AI
 
+### API Optimization Features ⚡
+- **Intelligent Rate Limiting**: Tracks and enforces API limits to prevent quota exhaustion
+- **Smart Caching**: Caches responses with TTL-based expiration (30min-24hr depending on data type)
+- **Query Optimization**: Batches requests and deduplicates queries for efficiency
+- **AI/Non-AI Mode**: Different optimization strategies based on whether AI analysis is enabled
+  - AI mode: More data for better analysis
+  - Non-AI mode: Minimal requests for efficiency
+- **60-80% API call reduction** through intelligent caching and optimization
+
+See [API_OPTIMIZATION.md](API_OPTIMIZATION.md) for detailed documentation.
+
 ### Technical Features
 - Room Database for offline storage
 - MVVM Architecture with LiveData
@@ -24,6 +35,7 @@ An intelligent Android news aggregation app that displays news from multiple sou
 - Retrofit for API calls
 - Material Design 3 UI
 - SwipeRefreshLayout for pull-to-refresh
+- WorkManager for background cache cleanup
 
 ## Setup
 

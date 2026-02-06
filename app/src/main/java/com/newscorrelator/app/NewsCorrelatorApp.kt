@@ -3,7 +3,12 @@ package com.newscorrelator.app
 import android.app.Application
 import android.os.Build
 import android.widget.Toast
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.newscorrelator.app.utils.LogManager
+import com.newscorrelator.app.workers.CacheCleanupWorker
+import java.util.concurrent.TimeUnit
 
 class NewsCorrelatorApp : Application() {
     override fun onCreate() {
@@ -56,9 +61,30 @@ class NewsCorrelatorApp : Application() {
         
         try {
             LogManager.i("Uncaught exception handler registered")
+            
+            // Schedule periodic cache cleanup
+            scheduleCacheCleanup()
+            
             LogManager.i("Application onCreate() completed successfully")
         } catch (e: Exception) {
             LogManager.e("Error during Application onCreate()", e)
         }
+    }
+    
+    private fun scheduleCacheCleanup() {
+        val cleanupRequest = PeriodicWorkRequestBuilder<CacheCleanupWorker>(
+            repeatInterval = 6, // Every 6 hours
+            repeatIntervalTimeUnit = TimeUnit.HOURS,
+            flexTimeInterval = 1, // With 1 hour flex period
+            flexTimeIntervalUnit = TimeUnit.HOURS
+        ).build()
+        
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            CacheCleanupWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
+            cleanupRequest
+        )
+        
+        LogManager.i("Scheduled periodic cache cleanup every 6 hours")
     }
 }
