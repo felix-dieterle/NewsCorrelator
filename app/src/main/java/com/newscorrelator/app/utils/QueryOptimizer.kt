@@ -128,9 +128,10 @@ object QueryOptimizer {
                 block()
             }
         } finally {
-            // Clean up mutex if no longer needed
+            // Only remove if no one else is waiting (this is still racy but safer)
+            // In production, consider using a reference counting approach
             if (!mutex.isLocked) {
-                inFlightRequests.remove(key)
+                inFlightRequests.remove(key, mutex)
             }
         }
     }

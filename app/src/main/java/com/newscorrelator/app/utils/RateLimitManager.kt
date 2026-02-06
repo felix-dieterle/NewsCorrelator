@@ -43,19 +43,18 @@ object RateLimitManager {
     
     /**
      * Check if request can proceed and track it
-     * Returns delay in milliseconds (0 if can proceed immediately)
+     * Applies delay internally if rate limit is reached
      */
-    suspend fun checkAndTrackRequest(apiName: String, isAiMode: Boolean = false): Long {
+    suspend fun checkAndTrackRequest(apiName: String, isAiMode: Boolean = false) {
         val now = System.currentTimeMillis()
         
-        return when (apiName) {
+        when (apiName) {
             API_NEWS -> checkNewsApiLimit(now)
             API_OPENROUTER -> checkOpenRouterLimit(now, isAiMode)
-            else -> 0L
         }
     }
     
-    private suspend fun checkNewsApiLimit(now: Long): Long {
+    private suspend fun checkNewsApiLimit(now: Long) {
         val hourlyKey = "$API_NEWS:hour"
         val dailyKey = "$API_NEWS:day"
         
@@ -86,11 +85,9 @@ object RateLimitManager {
         dailyWindow.count.incrementAndGet()
         
         LogManager.i("NewsAPI request tracked: ${hourlyWindow.count.get()}/$NEWS_API_LIMIT_PER_HOUR hourly, ${dailyWindow.count.get()}/$NEWS_API_LIMIT_PER_DAY daily")
-        
-        return 0L
     }
     
-    private suspend fun checkOpenRouterLimit(now: Long, isAiMode: Boolean): Long {
+    private suspend fun checkOpenRouterLimit(now: Long, isAiMode: Boolean) {
         val minuteKey = "$API_OPENROUTER:minute"
         val hourlyKey = "$API_OPENROUTER:hour"
         
@@ -124,8 +121,6 @@ object RateLimitManager {
         hourlyWindow.count.incrementAndGet()
         
         LogManager.i("OpenRouter request tracked: ${minuteWindow.count.get()}/$minuteLimit per minute, ${hourlyWindow.count.get()}/$OPENROUTER_LIMIT_PER_HOUR hourly")
-        
-        return 0L
     }
     
     private fun getOrCreateWindow(key: String, windowSize: Long, now: Long): RequestWindow {

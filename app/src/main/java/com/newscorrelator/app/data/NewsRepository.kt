@@ -3,7 +3,11 @@ package com.newscorrelator.app.data
 import android.util.Log
 import com.google.gson.Gson
 import com.newscorrelator.app.api.*
-import com.newscorrelator.app.utils.*
+import com.newscorrelator.app.utils.CacheManager
+import com.newscorrelator.app.utils.LogManager
+import com.newscorrelator.app.utils.QueryOptimizer
+import com.newscorrelator.app.utils.RateLimitManager
+import com.newscorrelator.app.utils.hashString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -19,6 +23,9 @@ class NewsRepository(
     private val newsApiService = ApiClient.newsApiService
     private val openRouterService = ApiClient.openRouterService
     private val gson = Gson()
+    
+    // Rate limit constant for calculations
+    private val NEWS_API_LIMIT_PER_HOUR = 10
 
     suspend fun fetchAndStoreNews(apiKey: String, categories: List<String>, sourcesPerTopic: Int, isAiMode: Boolean = false) {
         withContext(Dispatchers.IO) {
@@ -88,10 +95,13 @@ class NewsRepository(
                             LogManager.i("Got ${response.articles.size} articles from $country")
                             
                             // Add small delay between requests to be respectful
+                            val stats = RateLimitManager.getUsageStats(RateLimitManager.API_NEWS)
+                            val usedRequests = stats["hourly"] ?: 0
+                            val remainingRequests = NEWS_API_LIMIT_PER_HOUR - usedRequests
                             val delayTime = QueryOptimizer.calculateOptimalDelay(
                                 RateLimitManager.API_NEWS,
                                 isAiMode,
-                                RateLimitManager.getUsageStats(RateLimitManager.API_NEWS)["daily"] ?: 0
+                                remainingRequests.coerceAtLeast(0)
                             )
                             if (delayTime > 0) {
                                 delay(delayTime)
