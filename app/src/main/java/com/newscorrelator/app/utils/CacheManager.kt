@@ -14,10 +14,11 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object CacheManager {
     
-    // Internal visibility required for inline functions
-    internal val gson = Gson()
+    // Public visibility required for inline functions
+    val gson = Gson()
     
-    private data class CacheEntry<T>(
+    // Public visibility required because it's exposed through public properties
+    data class CacheEntry<T>(
         val data: T,
         val timestamp: Long,
         val ttl: Long
@@ -25,9 +26,9 @@ object CacheManager {
         fun isExpired(): Boolean = System.currentTimeMillis() - timestamp > ttl
     }
     
-    // Cache stores (internal visibility required for inline functions)
-    internal val newsCache = ConcurrentHashMap<String, CacheEntry<String>>()
-    internal val aiAnalysisCache = ConcurrentHashMap<String, CacheEntry<String>>()
+    // Cache stores (public visibility required for inline functions)
+    val newsCache = ConcurrentHashMap<String, CacheEntry<String>>()
+    val aiAnalysisCache = ConcurrentHashMap<String, CacheEntry<String>>()
     
     // Default TTL values (in milliseconds)
     private const val NEWS_CACHE_TTL_AI_MODE = 1_800_000L // 30 minutes in AI mode
