@@ -15,7 +15,49 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:title="@string/app_name"
-            app:titleTextColor="@android:color/white" />
+            app:titleTextColor="@android:color/white">
+            
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/newsApiLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/news_api_rate_limit"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp"
+                    android:layout_marginEnd="4dp" />
+                
+                <View
+                    android:id="@+id/newsApiIndicator"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:background="@color/green"
+                    android:layout_marginEnd="12dp" />
+                
+                <TextView
+                    android:id="@+id/openRouterLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/openrouter_api_rate_limit"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp"
+                    android:layout_marginEnd="4dp" />
+                
+                <View
+                    android:id="@+id/openRouterIndicator"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:background="@color/green" />
+            </LinearLayout>
+
+        </com.google.android.material.appbar.MaterialToolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 

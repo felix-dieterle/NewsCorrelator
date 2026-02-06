@@ -181,6 +181,42 @@ object RateLimitManager {
     }
     
     /**
+     * Get usage percentage for an API (highest of all tracked windows)
+     * Returns percentage (0-100) and color indicator ("green", "yellow", or "red")
+     */
+    fun getUsagePercentage(apiName: String): Pair<Int, String> {
+        val maxPercentage = when (apiName) {
+            API_NEWS -> {
+                val hourlyUsage = requestCounters["$API_NEWS:hour"]?.get(ONE_HOUR)?.count?.get() ?: 0
+                val dailyUsage = requestCounters["$API_NEWS:day"]?.get(ONE_DAY)?.count?.get() ?: 0
+                
+                val hourlyPercent = (hourlyUsage * 100) / NEWS_API_LIMIT_PER_HOUR
+                val dailyPercent = (dailyUsage * 100) / NEWS_API_LIMIT_PER_DAY
+                
+                maxOf(hourlyPercent, dailyPercent)
+            }
+            API_OPENROUTER -> {
+                val minuteUsage = requestCounters["$API_OPENROUTER:minute"]?.get(ONE_MINUTE)?.count?.get() ?: 0
+                val hourlyUsage = requestCounters["$API_OPENROUTER:hour"]?.get(ONE_HOUR)?.count?.get() ?: 0
+                
+                val minutePercent = (minuteUsage * 100) / OPENROUTER_LIMIT_PER_MINUTE
+                val hourlyPercent = (hourlyUsage * 100) / OPENROUTER_LIMIT_PER_HOUR
+                
+                maxOf(minutePercent, hourlyPercent)
+            }
+            else -> 0
+        }
+        
+        val color = when {
+            maxPercentage >= 90 -> "red"
+            maxPercentage >= 70 -> "yellow"
+            else -> "green"
+        }
+        
+        return Pair(maxPercentage.coerceIn(0, 100), color)
+    }
+    
+    /**
      * Reset all counters (useful for testing or manual reset)
      */
     fun resetAll() {

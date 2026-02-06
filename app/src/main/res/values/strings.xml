@@ -12,4 +12,6 @@
     <string name="integrity_score">Integrity Score: %.1f/10</string>
     <string name="not_analyzed">Not analyzed</string>
     <string name="view_sources">View Sources</string>
+    <string name="news_api_rate_limit">NewsAPI</string>
+    <string name="openrouter_api_rate_limit">OpenRouter</string>
 </resources>
