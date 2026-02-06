@@ -19,6 +19,10 @@ An intelligent Android news aggregation app that displays news from multiple sou
 
 ### API Optimization Features ⚡
 - **Intelligent Rate Limiting**: Tracks and enforces API limits to prevent quota exhaustion
+- **Visual Rate Limit Indicators**: Real-time colored indicators (🟢/🟡/🔴) in the toolbar showing API usage
+  - Green (0-69%): Safe usage level
+  - Yellow (70-89%): Approaching limit
+  - Red (90-100%): Near or at limit
 - **Smart Caching**: Caches responses with TTL-based expiration (30min-24hr depending on data type)
 - **Query Optimization**: Batches requests and deduplicates queries for efficiency
 - **AI/Non-AI Mode**: Different optimization strategies based on whether AI analysis is enabled

@@ -305,6 +305,13 @@ Results displayed to user
 3. **Lazy Loading**: RecyclerView with efficient adapter
 4. **Coroutines**: All network/DB operations async
 5. **Timeouts**: 30 second timeout on API calls
+6. **Rate Limit Indicators**: Visual feedback on API usage
+   - Real-time colored indicators in toolbar
+   - Green (0-69%): Safe usage
+   - Yellow (70-89%): Approaching limit
+   - Red (90-100%): Critical usage
+   - Updates every 2 seconds
+   - Separate indicators for NewsAPI and OpenRouter
 
 ---
 
@@ -325,21 +332,24 @@ Results displayed to user
 - [ ] Install app on Android 7.0+ device
 - [ ] Configure API keys in Settings
 - [ ] Pull to refresh news
+- [ ] Verify rate limit indicators show green initially
+- [ ] Make multiple API requests and verify indicators change color
 - [ ] View article details
 - [ ] Analyze article with AI
 - [ ] Check integrity indicators (colors)
 - [ ] View related articles
 - [ ] Open original article in browser
 - [ ] Test with slow network
-- [ ] Test with API limit exceeded
+- [ ] Test with API limit exceeded (indicators should turn red)
 - [ ] Test without OpenRouter key (no AI)
 - [ ] Change categories and refresh
 - [ ] Add keywords and refresh
+- [ ] Verify rate limit indicators update in real-time
 
 ### Edge Cases
 - No internet connection
 - Invalid API keys
-- API rate limit reached
+- API rate limit reached (red indicators)
 - Empty news results
 - Malformed API response
 - No related articles found

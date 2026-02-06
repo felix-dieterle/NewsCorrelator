@@ -2,11 +2,14 @@ package com.newscorrelator.app.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -15,6 +18,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.newscorrelator.app.R
 import com.newscorrelator.app.utils.LogManager
+import com.newscorrelator.app.utils.RateLimitManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: NewsViewModel
@@ -23,6 +27,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var progressBar: CircularProgressIndicator
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var newsApiIndicator: View
+    private lateinit var openRouterIndicator: View
+    private val handler = Handler(Looper.getMainLooper())
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            updateRateLimitIndicators()
+            handler.postDelayed(this, 2000) // Update every 2 seconds
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         LogManager.i("MainActivity.onCreate() started")
@@ -47,6 +60,10 @@ class MainActivity : AppCompatActivity() {
             LogManager.i("SwipeRefreshLayout found")
             progressBar = findViewById(R.id.progressBar)
             LogManager.i("ProgressBar found")
+            newsApiIndicator = findViewById(R.id.newsApiIndicator)
+            LogManager.i("NewsAPI indicator found")
+            openRouterIndicator = findViewById(R.id.openRouterIndicator)
+            LogManager.i("OpenRouter indicator found")
 
             LogManager.i("Getting ViewModel")
             viewModel = ViewModelProvider(this)[NewsViewModel::class.java]
@@ -64,6 +81,9 @@ class MainActivity : AppCompatActivity() {
                 LogManager.i("Swipe refresh triggered")
                 viewModel.refreshNews()
             }
+            
+            // Update rate limit indicators immediately
+            updateRateLimitIndicators()
 
             // Load initial data if preferences are set
             viewModel.preferences.observe(this) { prefs ->
@@ -87,6 +107,30 @@ class MainActivity : AppCompatActivity() {
             // Show error to user but don't crash the app
             Toast.makeText(this, "Error initializing main screen: ${e.message}", Toast.LENGTH_LONG).show()
             // Try to continue despite the error
+        }
+    }
+    
+    private fun updateRateLimitIndicators() {
+        try {
+            // Update NewsAPI indicator
+            val (_, newsColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_NEWS)
+            newsApiIndicator.setBackgroundColor(getColorForIndicator(newsColor))
+            
+            // Update OpenRouter indicator
+            val (_, openRouterColor) = RateLimitManager.getUsagePercentage(RateLimitManager.API_OPENROUTER)
+            openRouterIndicator.setBackgroundColor(getColorForIndicator(openRouterColor))
+            
+            LogManager.d("Rate limit indicators updated - NewsAPI: $newsColor, OpenRouter: $openRouterColor")
+        } catch (e: Exception) {
+            LogManager.e("Error updating rate limit indicators", e)
+        }
+    }
+    
+    private fun getColorForIndicator(color: String): Int {
+        return when (color) {
+            "red" -> ContextCompat.getColor(this, R.color.red)
+            "yellow" -> ContextCompat.getColor(this, R.color.yellow)
+            else -> ContextCompat.getColor(this, R.color.green)
         }
     }
 
@@ -182,11 +226,15 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         LogManager.i("MainActivity.onResume()")
+        // Start updating rate limit indicators
+        handler.post(updateRunnable)
     }
     
     override fun onPause() {
         super.onPause()
         LogManager.i("MainActivity.onPause()")
+        // Stop updating rate limit indicators
+        handler.removeCallbacks(updateRunnable)
     }
     
     override fun onStop() {
