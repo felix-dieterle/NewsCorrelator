@@ -62,7 +62,8 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
                 repository.fetchAndStoreNews(
                     apiKey = prefs.newsApiKey,
                     categories = categories,
-                    sourcesPerTopic = prefs.sourcesPerTopic
+                    sourcesPerTopic = prefs.sourcesPerTopic,
+                    isAiMode = prefs.enableAiAnalysis
                 )
                 LogManager.i("News fetched and stored successfully")
             } catch (e: Exception) {
@@ -87,7 +88,11 @@ class NewsViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 LogManager.i("Analyzing article integrity")
-                val analyzed = repository.analyzeArticleIntegrity(article, prefs.openRouterApiKey)
+                val analyzed = repository.analyzeArticleIntegrity(
+                    article = article,
+                    apiKey = prefs.openRouterApiKey,
+                    isAiMode = prefs.enableAiAnalysis
+                )
                 database.articleDao().updateArticle(analyzed)
                 LogManager.i("Article analyzed successfully")
             } catch (e: Exception) {
