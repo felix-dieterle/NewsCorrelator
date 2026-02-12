@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NewsCorrelator" parent="Theme.Material3.Light">
+    <style name="Theme.NewsCorrelator" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryContainer">@color/primary_dark</item>
         <item name="colorOnPrimary">@android:color/white</item>

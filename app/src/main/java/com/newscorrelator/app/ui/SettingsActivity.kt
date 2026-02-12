@@ -26,11 +26,12 @@ class SettingsActivity : AppCompatActivity() {
             LogManager.i("Content view set successfully")
 
             try {
+                val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
+                setSupportActionBar(toolbar)
                 supportActionBar?.setDisplayHomeAsUpEnabled(true)
-                supportActionBar?.title = "Settings"
-                LogManager.i("Action bar configured")
+                LogManager.i("Toolbar configured")
             } catch (e: Exception) {
-                LogManager.e("Error configuring action bar", e)
+                LogManager.e("Error configuring toolbar", e)
             }
 
             LogManager.i("Getting ViewModel")
